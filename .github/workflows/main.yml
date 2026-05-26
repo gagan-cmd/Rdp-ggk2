@@ -1,0 +1,118 @@
+name: AvicaRDP
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'
+
+jobs:
+  build:
+    name: Windows RDP
+    runs-on: windows-latest
+    timeout-minutes: 350
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verify Python
+        shell: pwsh
+        run: |
+          python --version
+          pip --version
+
+      - name: Download Files
+        shell: pwsh
+        run: |
+
+          Write-Host "🚀 Downloading files..." -ForegroundColor Green
+
+          Invoke-WebRequest `
+            -Uri "https://gitlab.com/userup908/my-rdp/-/raw/main/setup.py" `
+            -OutFile "setup.py"
+
+          Invoke-WebRequest `
+            -Uri "https://gitlab.com/userup908/my-rdp/-/raw/main/show.bat" `
+            -OutFile "show.bat"
+
+          Invoke-WebRequest `
+            -Uri "https://gitlab.com/userup908/my-rdp/-/raw/main/loop.bat" `
+            -OutFile "loop.bat"
+
+          Invoke-WebRequest `
+            -Uri "https://download.avica.com/AvicaLite_v8.0.8.9.exe" `
+            -OutFile "Avica_setup.exe"
+
+      - name: Install Python Packages
+        shell: pwsh
+        run: |
+
+          Write-Host "📦 Installing packages..." -ForegroundColor Yellow
+
+          python -m pip install --upgrade pip
+
+          python -m pip install `
+            requests `
+            pillow `
+            pyscreeze `
+            pyautogui==0.9.54 `
+            telegraph `
+            pygetwindow `
+            pymsgbox `
+            mouseinfo `
+            pyrect `
+            pyscreenshot
+
+      - name: Enable RDP
+        shell: pwsh
+        run: |
+
+          Write-Host "🖥 Enabling RDP..." -ForegroundColor Cyan
+
+          Set-ItemProperty `
+            -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' `
+            -Name "fDenyTSConnections" `
+            -Value 0
+
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+      - name: Set Password
+        shell: pwsh
+        run: |
+
+          net user runneradmin TheDisa1a
+
+      - name: Start Avica
+        shell: pwsh
+        run: |
+
+          Write-Host "⚡ Starting Avica..." -ForegroundColor Yellow
+
+          Start-Process ".\Avica_setup.exe"
+
+          Start-Sleep -Seconds 30
+
+      - name: Run setup.py
+        shell: pwsh
+        run: |
+
+          Write-Host "⚙ Running setup.py..." -ForegroundColor Green
+
+          python setup.py
+
+      - name: Keep Alive
+        shell: pwsh
+        run: |
+
+          Write-Host "✅ Runner Active" -ForegroundColor Green
+
+          while ($true) {
+            Start-Sleep -Seconds 300
+            Write-Host "Still Running..."
+          }
